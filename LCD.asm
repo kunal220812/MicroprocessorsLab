@@ -1,6 +1,6 @@
 #include p18f87k22.inc
 
-    global  LCD_Setup, LCD_Write_Message
+    global  LCD_Setup, LCD_Write_Message, LCD_clr_display, LCD_second_line_display
 
 acs0    udata_acs   ; named variables in access ram
 LCD_cnt_l   res 1   ; reserve 1 byte for variable LCD_cnt_l
@@ -24,11 +24,11 @@ LCD_Setup
 	call	LCD_Send_Nib
 	movlw	.10		; wait 40us
 	call	LCD_delay_x4us
-	movlw	b'00101000'	; 2 line display 5x8 dot characters
+	movlw	b'00101000'	; 2 line display with 5x8 dot characters
 	call	LCD_Send_Byte_I
 	movlw	.10		; wait 40us
 	call	LCD_delay_x4us
-	movlw	b'00101000'	; repeat, 2 line display 5x8 dot characters
+	movlw	b'00101000'	; repeat, 2 line display with 5x8 dot characters
 	call	LCD_Send_Byte_I
 	movlw	.10		; wait 40us
 	call	LCD_delay_x4us
@@ -45,7 +45,21 @@ LCD_Setup
 	movlw	.10		; wait 40us
 	call	LCD_delay_x4us
 	return
-
+	
+LCD_clr_display
+	movlw	b'00000001'	; display clear
+	call	LCD_Send_Byte_I
+	movlw	.2		; wait 2ms
+	call	LCD_delay_ms
+	return
+	
+LCD_second_line_display
+	movlw b'10101000'	; "shift DDRAM address to location" instruction code
+	call LCD_Send_Byte_I
+	movlw	.10		; wait 40us
+	call	LCD_delay_x4us
+	return
+	
 LCD_Write_Message	    ; Message stored at FSR2, length stored in W
 	movwf   LCD_counter
 LCD_Loop_message
@@ -67,7 +81,7 @@ LCD_Send_Nib
 	andlw   0x0f	    ; select just low nibble
 	movwf   LATB	    ; output data bits to LCD
 	bcf	LATB, LCD_RS    ; Instruction write clear RS bit
-        call    LCD_Enable  ; Pulse enable Bit 
+        call    LCD_Enable  ; Pulse the Enable Bit
 	return
 
 LCD_Send_Byte_D		    ; Transmits byte stored in W to data reg
@@ -132,8 +146,7 @@ lcdlp1	decf 	LCD_cnt_l,F	; no carry when 0x00 -> 0xff
 	subwfb 	LCD_cnt_h,F	; no carry when 0x00 -> 0xff
 	bc 	lcdlp1		; carry, then loop again
 	return			; carry reset so return
-
-
+	
     end
 
 
